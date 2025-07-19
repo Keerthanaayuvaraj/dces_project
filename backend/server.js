@@ -198,6 +198,8 @@ const mongoose = require('mongoose');
 const { authMiddleware } = require('./auth');
 const app = express();
 const PORT = 5000;
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // MongoDB connection
 mongoose.connect('mongodb://localhost:27017/studentRepository')
@@ -370,6 +372,68 @@ app.delete('/achievements/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete error:', error);
     res.status(500).json({ error: 'Server error during deletion' });
+  }
+});
+
+app.put('/change-password', authMiddleware('student'), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const studentId = req.user.id;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Both current and new password are required' 
+      });
+    }
+
+    //Abi add proper password validation here
+    /*
+    if (newPassword.length < 8) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Password must be at least 8 characters long' 
+      });
+    }
+    */
+
+    // Find student
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Student not found' 
+      });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, student.password);
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Current password is incorrect' 
+      });
+    }
+
+    // Hash and update password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    student.password = hashedPassword;
+    await student.save();
+
+    res.json({ 
+      success: true,
+      message: 'Password changed successfully' 
+    });
+
+  } catch (error) {
+    console.error('Password change error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'An error occurred while changing password' 
+    });
   }
 });
 

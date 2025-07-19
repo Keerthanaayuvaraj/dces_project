@@ -62,21 +62,28 @@ async function registerAdmin(req, res) {
   }
 }
 
-// Login (Student/Admin)
 async function login(req, res, role) {
   try {
     const { email, password } = req.body;
     const Model = role === 'admin' ? Admin : Student;
     const user = await Model.findOne({ email });
+    
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ error: 'Invalid credentials' });
+    
+    // Compare hashed passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    
     const token = generateToken(user, role);
     res.json({ token, user });
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed' });
   }
 }
+
 
 module.exports = {
   registerStudent,
