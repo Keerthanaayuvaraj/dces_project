@@ -220,8 +220,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-
-
 // Upload endpoint
 // Update the upload endpoint to include fileType and studentId
 app.post('/upload', authMiddleware('student'), upload.single('file'), async (req, res) => {

@@ -62,6 +62,8 @@ async function registerAdmin(req, res) {
   }
 }
 
+// Login (Student/Admin)
+// Login (Student/Admin) - without bcrypt
 async function login(req, res, role) {
   try {
     const { email, password } = req.body;
