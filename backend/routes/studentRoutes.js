@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Student = require('../model/student');
+const Admin = require('../model/admin');
 const { registerStudent, registerAdmin, login, authMiddleware } = require('../auth');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
@@ -661,3 +662,157 @@ router.post('/students/:id/selective-report', authMiddleware('admin'), async (re
 });
 
 module.exports = router;
+
+
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const bcrypt = require('bcrypt');
+
+// dummy email transporter
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',      // Explicitly use Gmail's SMTP server
+  port: 465,                   // Use SSL port
+  secure: true, 
+  auth: {
+    user: 'jennyalice1903@gmail.com',
+    pass: 'hxtmsutfruwuittk',
+  },
+});
+
+router.post('/student/forgot-password', async (req, res) => {
+  const { registerNo } = req.body;
+  try {
+    const student = await Student.findOne({ rollNumber: registerNo }); // <-- fixed this line
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    student.otp = otp;
+    student.otpExpiry = expiry;
+    await student.save();
+
+    // Send email
+    await transporter.sendMail({
+      from: 'jennyalice1903@gmail.com',
+      to: student.email,
+      subject: "Password Reset OTP",
+      html: `<p>Your OTP is: <strong>${otp}</strong></p><p>It is valid for 10 minutes.</p>`
+    });
+
+    res.status(200).json({ message: 'OTP sent successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+router.post('/student/verify-otp', async (req, res) => {
+  const { registerNo, otp } = req.body;
+  try {
+    const student = await Student.findOne({ rollNumber: registerNo });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    if (student.otp !== otp || Date.now() > student.otpExpiry) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    res.json({ message: 'OTP verified' });
+    student.otp = null;
+    student.otpExpiry = null;
+    await student.save();
+
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+router.post('/student/reset-password', async (req, res) => {
+  const { registerNo, newPassword } = req.body;
+  try {
+    const student = await Student.findOne({ rollNumber: registerNo });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    student.password = hashedPassword;
+    student.otp = undefined;
+    student.otpExpiry = undefined;
+    await student.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// Forgot Password - Send OTP
+router.post('/admin/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const admin = await Admin.findOne({ email: email });
+    if (!admin) return res.status(404).json({ error: 'Admin not found' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 10 * 60 * 1000;
+
+    admin.otp = otp;
+    admin.otpExpiry = expiry;
+    await admin.save();
+    console.log(admin.email);
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error('SMTP Config Error:', error);
+      } else {
+        console.log('SMTP is ready to send emails 🚀');
+      }
+    });
+
+    await transporter.sendMail({
+      from: 'jennyalice1903@gmail.com',
+      to: admin.email,
+      subject: 'Admin Password Reset OTP',
+      html: `<p>Your OTP is: <strong>${otp}</strong></p><p>It expires in 10 minutes.</p>`,
+    });
+
+    res.json({ message: 'OTP sent successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// Verify OTP
+router.post('/admin/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const admin = await Admin.findOne({ email: email });
+    if (!admin || admin.otp !== otp || Date.now() > admin.otpExpiry) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+    res.json({ message: 'OTP verified' });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reset Password
+router.post('/admin/reset-password', async (req, res) => {
+  const { email, newPassword } = req.body;
+  console.log('Reset password request for:', email, newPassword);
+  try {
+    const admin = await Admin.findOne({ email: email });
+    if (!admin) return res.status(404).json({ error: 'Admin not found' });
+
+    admin.password = newPassword;
+    admin.otp = undefined;
+    admin.otpExpiry = undefined;
+    await admin.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+

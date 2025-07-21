@@ -14,7 +14,9 @@ const studentSchema = new mongoose.Schema({
   courses: [{ type: String }],
   achievements: [{ type: mongoose.Schema.Types.ObjectId, ref: 'StudentAchievement' }],
   rollNumber: { type: String, required: true, unique: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  otp: { type: String }, // NEW
+  otpExpiry: { type: Date }, // NEW
 });
 
 module.exports = mongoose.model('Student', studentSchema); 

@@ -818,7 +818,7 @@ import StudentLogin from './pages/StudentLogin';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';  
 import StudentDashboard from './pages/StudentDashboard';
-
+import Home from './pages/Home';
 function HomePage() {
   const navigate = useNavigate();
   return (
@@ -861,7 +861,7 @@ function HomePage() {
 function App() {
   return (
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Home />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/studentlogin" element={<StudentLogin />} />
         <Route path="/adminlogin" element={<AdminLogin />} />

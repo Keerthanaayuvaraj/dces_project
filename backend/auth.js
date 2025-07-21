@@ -69,7 +69,7 @@ async function login(req, res, role) {
     const { email, password } = req.body;
     const Model = role === 'admin' ? Admin : Student;
     const user = await Model.findOne({ email });
-    
+    console.log(user.email, user.password);
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     
     // Compare hashed passwords
