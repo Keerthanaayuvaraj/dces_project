@@ -672,15 +672,7 @@ if (!token) return null;
               )}
             </div>
 
-            <div className="fixed bottom-6 right-28 flex gap-4">
-              <button
-                onClick={() => setShowReportModal(true)}
-                className="bg-green-500 font-bold text-white px-4 py-2 rounded-full shadow-2xl hover:bg-green-600 hover:scale-105 transform transition duration-300 ease-in-out"
-                aria-label="Generate report"
-              >
-                Generate Report
-              </button>
-              
+            <div className="fixed bottom-6 right-20 flex gap-4">              
               <button
                 className="bg-blue-500 font-bold text-white w-16 h-16 flex items-center justify-center rounded-full text-2xl shadow-2xl 
                           hover:bg-blue-600 hover:scale-110 transform transition duration-300 ease-in-out"
