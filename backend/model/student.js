@@ -12,7 +12,7 @@ const studentSchema = new mongoose.Schema({
   yearOfStudy: { type: String },  // Optional: keep this for display if needed
 
   batch: { type: String, required: true },
-  cgpa: { type: Number },
+  cgpa: {type: Number, min: 0, max: 10, default: null },
 
   hasInterned: { type: Boolean, default: false },
   isPlaced: { type: Boolean, default: false },

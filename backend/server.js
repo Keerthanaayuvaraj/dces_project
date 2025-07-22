@@ -246,7 +246,6 @@ const upload = multer({
 });
 
 // Upload endpoint
-// Update the upload endpoint to include fileType and studentId
 app.post('/upload', authMiddleware('student'), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -453,8 +452,114 @@ app.put('/change-password', authMiddleware('student'), async (req, res) => {
   }
 });
 
+// Get student profile
+app.get('/api/student/profile', authMiddleware('student'), async (req, res) => {
+  try {
+    const student = await Student.findById(req.user.id)
+      .select('-password -__v');
+    
+    if (!student) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Student not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      student
+    });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch profile' 
+    });
+  }
+});
+
+// Update CGPA
+app.put('/api/student/cgpa', authMiddleware('student'), async (req, res) => {
+  try {
+    const { cgpa } = req.body;
+    
+    if (cgpa === undefined || cgpa < 0 || cgpa > 10) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Please provide a valid CGPA (0-10)' 
+      });
+    }
+
+    const updatedStudent = await Student.findByIdAndUpdate(
+      req.user.id,
+      { cgpa },
+      { new: true, select: '-password -__v' }
+    );
+
+    res.json({
+      success: true,
+      student: updatedStudent,
+      message: 'CGPA updated successfully'
+    });
+  } catch (error) {
+    console.error('CGPA update error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update CGPA' 
+    });
+  }
+});
+
+// Profile photo upload
+app.post('/api/student/profile-photo', authMiddleware('student'), upload.single('profilePhoto'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png'];
+    if (!validTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: 'Only JPEG and PNG images are allowed' });
+    }
+
+    // Validate file size (2MB max)
+    if (req.file.size > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File size must be less than 2MB' });
+    }
+
+    const student = await Student.findByIdAndUpdate(
+      req.user.id,
+      { profilePhoto: req.file.filename },
+      { new: true }
+    ).select('-password'); // Exclude password from response
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    res.json({
+      success: true,
+      filename: req.file.filename,
+      profilePhotoUrl: `/profile-photos/${req.file.filename}`,
+      message: 'Profile photo updated successfully'
+    });
+  } catch (error) {
+    console.error('Profile photo upload error:', error);
+    res.status(500).json({ error: 'Failed to update profile photo' });
+  }
+});
+
+// Serve profile photos
+app.get('/profile-photos/:filename', (req, res) => {
+  res.sendFile(path.join(__dirname, 'uploads', 'profile-photos', req.params.filename));
+});
+
+
 
 // Start server
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+
 
 app.use('/api', require('./routes/studentRoutes'));

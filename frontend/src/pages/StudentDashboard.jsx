@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import { useNavigate } from 'react-router-dom';
@@ -25,67 +26,53 @@ function StudentDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedItems, setSelectedItems] = useState({});
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [cgpa, setCgpa] = useState(() => {
-    const saved = localStorage.getItem('cgpa');
-    return saved ? Number(saved) : '';
-  });
+  const [cgpa, setCgpa] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [updateCgpaModal, setUpdateCgpaModal] = useState(false);
   const navigate = useNavigate();
 
-  // Get user info from JWT
-  const token = localStorage.getItem('token');
-  const user = token ? JSON.parse(atob(token.split('.')[1])) : null;
-  const userName = user?.name || 'Student';
-  const studentId = user?.id;
-
-/*
-const token = localStorage.getItem('token');
-const userName = localStorage.getItem('userName') || 'Student';
-const studentId = localStorage.getItem('studentId');  // fetched from localStorage during login
-const token = 'dummyToken';
-const token = localStorage.getItem('token');
-*/
-
-useEffect(() => {
-  if (!token) {
-    navigate('/studentlogin');
-  }
-}, [token, navigate]);
-
-if (!token) {
-  return (
-    <div className="flex justify-center items-center h-screen">
-      <p>Redirecting to login...</p>
-    </div>
-  );
-}
-console.log("TOKEN CHECKED:", token);
-
-  // Load saved data from localStorage
+  // Fetch profile data and achievements
   useEffect(() => {
-    const saved = localStorage.getItem("uploads");
-    if (saved) {
-      setUploads(JSON.parse(saved));
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/studentlogin');
+      return;
     }
-  }, []);
 
-  // Save to localStorage when uploads change
-  useEffect(() => {
-    localStorage.setItem("uploads", JSON.stringify(uploads));
-  }, [uploads]);
-
-  // Fetch initial data from backend
-  useEffect(() => {
-    if (!studentId) return;
-
-    const fetchInitialData = async () => {
+    const fetchProfileAndData = async () => {
       try {
+        // Fetch profile
+        const profileRes = await fetch(`${BACKEND_URL}/api/student/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!profileRes.ok) throw new Error('Failed to fetch profile');
+        
+        const profileData = await profileRes.json();
+        if (profileData.success) {
+          setUserInfo({
+            id: profileData.student._id,
+            name: profileData.student.name,
+            email: profileData.student.email,
+            rollNumber: profileData.student.rollNumber,
+            cgpa: profileData.student.cgpa,
+            profilePhoto: profileData.student.profilePhoto
+          });
+          setCgpa(profileData.student.cgpa || '');
+        }
+
+        // Fetch achievements by category
         const promises = studentRepoTiles.map(async (category) => {
-          const res = await fetch(`${BACKEND_URL}/achievements/${studentId}/${category}`, {
+          const res = await fetch(`${BACKEND_URL}/achievements/${profileData.student._id}/${category}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -105,22 +92,26 @@ console.log("TOKEN CHECKED:", token);
         
         setUploads(newUploads);
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("Initial data fetch error:", err);
+        if (err.message === 'Failed to fetch profile') {
+          localStorage.removeItem('token');
+          navigate('/studentlogin');
+        }
       }
     };
-    
-    fetchInitialData();
-  }, [studentId, token]);
+
+    fetchProfileAndData();
+  }, [navigate]);
 
   // Fetch data when active tile changes
   useEffect(() => {
-    if (!activeTile || !studentId) return;
+    if (!activeTile || !userInfo?.id) return;
 
     const fetchAchievements = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/achievements/${studentId}/${activeTile}`, {
+        const res = await fetch(`${BACKEND_URL}/achievements/${userInfo.id}/${activeTile}`, {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
         if (!res.ok) throw new Error('Failed to fetch data');
@@ -133,15 +124,13 @@ console.log("TOKEN CHECKED:", token);
     };
     
     fetchAchievements();
-  }, [activeTile, studentId, token]);
+  }, [activeTile, userInfo?.id]);
 
   const validateDates = (fromDate, toDate) => {
-    if (!fromDate) return true; // No from date selected yet
-    if (!toDate) return true; // No to date selected yet (optional field)
-
+    if (!fromDate) return true;
+    if (!toDate) return true;
     const from = new Date(fromDate);
     const to = new Date(toDate);
-
     return to >= from;
   };
 
@@ -168,22 +157,18 @@ console.log("TOKEN CHECKED:", token);
 
     drawBorder();
 
-    // Add student info header
     doc.setFont("times", "bold");
     doc.setFontSize(16);
-    doc.text(`Student Achievement Report for ${userName}`, 105, y, { align: 'center' });
+    doc.text(`Student Achievement Report for ${userInfo?.name || 'Student'}`, 105, y, { align: 'center' });
     y += 10;
     doc.setFontSize(12);
     doc.text(`CGPA: ${cgpa || 'Not specified'}`, 105, y, { align: 'center' });
     y += 15;
 
     Object.entries(selectedItems).forEach(([category, ids]) => {
-      const items = (uploads[category] || []).filter((item) =>
-        ids.includes(item._id)
-      );
+      const items = (uploads[category] || []).filter((item) => ids.includes(item._id));
       if (!items.length) return;
 
-      // Category Heading
       doc.setFont("times", "bold");
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
@@ -195,7 +180,6 @@ console.log("TOKEN CHECKED:", token);
       items.forEach((item) => {
         doc.setFont("times", "bold");
         doc.setFontSize(12);
-        
         doc.text(`• ${item.title}${item.companyName ? ` at ${item.companyName}` : ''}`, 20, y);
         y += 6;
         doc.text(`From: ${new Date(item.fromDate).toLocaleDateString()} To: ${item.toDate ? new Date(item.toDate).toLocaleDateString() : 'Present'}`, 20, y);
@@ -217,7 +201,7 @@ console.log("TOKEN CHECKED:", token);
       y += 5;
     });
 
-    doc.save(`${userName}_achievements_report.pdf`);
+    doc.save(`${userInfo?.name || 'student'}_achievements_report.pdf`);
     setShowReportModal(false);
   };
 
@@ -232,10 +216,9 @@ console.log("TOKEN CHECKED:", token);
 
     drawBorder();
 
-    // Add student info header
     doc.setFont("times", "bold");
     doc.setFontSize(16);
-    doc.text(`Complete Achievement Report for ${userName}`, 105, y, { align: 'center' });
+    doc.text(`Complete Achievement Report for ${userInfo?.name || 'Student'}`, 105, y, { align: 'center' });
     y += 10;
     doc.setFontSize(12);
     doc.text(`CGPA: ${cgpa || 'Not specified'}`, 105, y, { align: 'center' });
@@ -255,7 +238,6 @@ console.log("TOKEN CHECKED:", token);
       items.forEach((item) => {
         doc.setFont("times", "bold");
         doc.setFontSize(12);
-      
         doc.text(`• ${item.title}${item.companyName ? ` at ${item.companyName}` : ''}`, 20, y);
         y += 6;
         doc.text(`From: ${new Date(item.fromDate).toLocaleDateString()} To: ${item.toDate ? new Date(item.toDate).toLocaleDateString() : 'Present'}`, 20, y);
@@ -277,7 +259,7 @@ console.log("TOKEN CHECKED:", token);
       y += 5;
     });
 
-    doc.save(`${userName}_complete_achievements_report.pdf`);
+    doc.save(`${userInfo?.name || 'student'}_complete_achievements_report.pdf`);
   };
 
   const handleUpload = async (e) => {
@@ -285,21 +267,18 @@ console.log("TOKEN CHECKED:", token);
     const form = e.target;
     const file = form.file.files[0];  
     const fromDate = e.target.fromDate.value;
-    const toDate = e.target.toDate.value || null; // Handle empty toDate
+    const toDate = e.target.toDate.value || null;
 
-    //Validate date
     if (toDate && !validateDates(fromDate, toDate)) {
       setError("End date cannot be before start date");
       return;
     }
     
-    // Validate inputs
     if (!file && !editingId) {
       setError("Please select a file");
       return;
     }
 
-    // File validation
     if (file) {
       const validTypes = ["application/pdf", "image/jpeg", "image/png"];
       if (!validTypes.includes(file.type)) {
@@ -343,7 +322,7 @@ console.log("TOKEN CHECKED:", token);
             method: editingId ? 'PUT' : 'POST',
             body: formData,
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           }
         );
@@ -367,7 +346,7 @@ console.log("TOKEN CHECKED:", token);
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
           body: JSON.stringify(jsonData),
         });
@@ -405,7 +384,7 @@ console.log("TOKEN CHECKED:", token);
         const res = await fetch(`${BACKEND_URL}/achievements/${id}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
 
@@ -432,133 +411,162 @@ console.log("TOKEN CHECKED:", token);
   };
 
   const handleCgpaSave = async () => {
-    if (!cgpa || cgpa < 0 || cgpa > 10) {
+    if (cgpa === '' || cgpa < 0 || cgpa > 10) {
       alert('Please enter a valid CGPA (0-10)');
       return;
     }
+
+    setIsLoading(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/student/cgpa`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({ cgpa: Number(cgpa) })
       });
-      if (!res.ok) throw new Error('Failed to update CGPA');
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update CGPA');
+      }
+
       const data = await res.json();
-      localStorage.setItem('cgpa', data.cgpa);
-      alert('CGPA updated!');
+      setUserInfo(prev => ({
+        ...prev,
+        cgpa: data.student.cgpa
+      }));
+      setCgpa(data.student.cgpa);
+      alert(data.message || 'CGPA updated successfully!');
     } catch (err) {
-      alert('Failed to update CGPA');
+      alert(err.message || 'Failed to update CGPA');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleChangePassword = async (e) => {
-  e.preventDefault();
-  
-  // Validation
-  if (newPassword !== confirmPassword) {
-    setPasswordError("New passwords don't match");
-    return;
-  }
-  
-  //Abirami! kindly add the password validation logic here. Kindly remove the comment below when you add the validation logic.
-
-  /*
-  if (newPassword.length < 6) {
-    setPasswordError("Password must be at least 6 characters");
-    return;
-  }
-  */
-
-  try {
-    const res = await fetch(`${BACKEND_URL}/change-password`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ currentPassword, newPassword })
-    });
-
-    const data = await res.json();
+    e.preventDefault();
     
-    if (!res.ok) {
-      throw new Error(data.message || 'Failed to change password');
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords don't match");
+      return;
     }
 
-    // Success
-    alert('Password changed successfully!');
-    setShowChangePasswordModal(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setPasswordError('');
-  } catch (err) {
-    setPasswordError(err.message);
-  }
-};
+    /*if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      return;
+    }*/
 
-  // Redirect to login if no token
-  // if (!token) {
-  //   navigate('/home');
-  //   return null;
-  // }
-  useEffect(() => {
-  if (!token) {
-    navigate('/home');
-  }
-}, [token, navigate]);
+    try {
+      const res = await fetch(`${BACKEND_URL}/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
 
-if (!token) return null;
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to change password');
+      }
 
+      alert('Password changed successfully!');
+      setShowProfileModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
+    } catch (err) {
+      setPasswordError(err.message);
+    }
+  };
+
+  const renderProfileDropdown = () => (
+    <div className="relative">
+      <button 
+        onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+        className="flex items-center gap-2 hover:bg-gray-200 rounded-full p-1 transition"
+      >
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
+          {profilePhoto ? (
+            <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-lg font-medium">
+              {userInfo?.name?.charAt(0).toUpperCase() || 'U'}
+            </span>
+          )}
+        </div>
+      </button>
+      
+      {showProfileDropdown && (
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+          <div className="px-4 py-3 border-b">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
+                  <span className="text-xl font-medium">
+                    {userInfo?.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                
+              </div>
+              <div>
+                <p className="font-medium">{userInfo?.name}</p>
+                <p className="font-medium">{userInfo?.rollNumber}</p>
+                <p className="text-sm text-gray-500">{userInfo?.email}</p>
+                <p className="text-sm text-gray-500">CGPA: {userInfo?.cgpa}</p>
+              </div>
+            </div>
+          </div>
+        
+          <button
+            onClick={() => {
+              setShowProfileModal(true);
+              setShowProfileDropdown(false);
+            }}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Change Password
+          </button>
+
+          <button
+          onClick={() => {
+              setUpdateCgpaModal(true);
+              setShowProfileDropdown(false);
+            }}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Update CGPA
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Main Content */}
       <div className="flex-1 p-6 relative overflow-auto">
-        {/* Welcome and Logout */}
+        {/* Welcome and Profile Section */}
         <div className="flex justify-between items-center mb-4">
-          <div className="text-xl font-semibold">Welcome!</div>
-          <div className="flex gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="10"
-                value={cgpa}
-                onChange={e => setCgpa(e.target.value)}
-                placeholder="Enter CGPA"
-                className="p-2 border rounded w-32"
-              />
-              <button
-                onClick={handleCgpaSave}
-                className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600"
-              >
-                Save CGPA
-              </button>
-            </div>
-            <button
-                onClick={() => setShowChangePasswordModal(true)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-                Change Password
-            </button>
-            
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              Logout
-            </button>
-            
+          <div className="text-xl font-semibold">
+            Welcome, {userInfo?.name || 'Student'}!
           </div>
-        </div>
-        <h1 className="text-3xl font-semibold mb-6">
+          
+            
+            {renderProfileDropdown()}
+      </div>
+      <h1 className="text-3xl font-semibold mb-6">
           {activeTile || activeSection}
-        </h1>
+      </h1>
 
         {/* Tile View */}
         {activeSection === "Student Repository" && !activeTile && (
@@ -672,15 +680,7 @@ if (!token) return null;
               )}
             </div>
 
-            <div className="fixed bottom-6 right-28 flex gap-4">
-              <button
-                onClick={() => setShowReportModal(true)}
-                className="bg-green-500 font-bold text-white px-4 py-2 rounded-full shadow-2xl hover:bg-green-600 hover:scale-105 transform transition duration-300 ease-in-out"
-                aria-label="Generate report"
-              >
-                Generate Report
-              </button>
-              
+            <div className="fixed bottom-6 right-20 flex gap-4">
               <button
                 className="bg-blue-500 font-bold text-white w-16 h-16 flex items-center justify-center rounded-full text-2xl shadow-2xl 
                           hover:bg-blue-600 hover:scale-110 transform transition duration-300 ease-in-out"
@@ -747,6 +747,148 @@ if (!token) return null;
                 >
                   Generate
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Profile Settings Modal */}
+        {showProfileModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg w-full max-w-md">
+              <div className="p-6">                
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
+                      <span className="text-2xl font-medium">
+                          {userInfo?.name?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium">{userInfo?.name}</h3>
+                    <p className="text-gray-600">{userInfo?.email}</p>
+                    {userInfo?.rollNumber && (
+                      <p className="text-gray-600">Roll No: {userInfo.rollNumber}</p>
+                    )}
+                  </div>
+                </div>
+                  
+                <div className="space-y-4">
+                  <div className="pt-4 border-t">
+                    <h3 className="text-lg font-medium mb-3">Change Password</h3>
+                    {passwordError && (
+                      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-3">
+                        {passwordError}
+                      </div>
+                    )}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          required
+                          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
+                          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2">
+                  <button 
+                    onClick={() => setShowProfileModal(false)}
+                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button 
+                    onClick={handleChangePassword}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Update CGPA Modal */}
+        {updateCgpaModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full">
+              <h2 className="text-xl font-semibold mb-4">Update CGPA</h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
+                      <span className="text-2xl font-medium">
+                          {userInfo?.name?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium">{userInfo?.name}</h3>
+                    <p className="text-gray-600">{userInfo?.email}</p>
+                    {userInfo?.rollNumber && (
+                      <p className="text-gray-600">Roll No: {userInfo.rollNumber}</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CGPA (0-10)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                    value={cgpa}
+                    onChange={e => setCgpa(e.target.value)}
+                    placeholder="Enter your CGPA"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button 
+                    onClick={() => setUpdateCgpaModal(false)}
+                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCgpaSave}
+                    disabled={isLoading}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -872,80 +1014,9 @@ if (!token) return null;
             </form>
           </div>
         )}
-
-        {/* Change Password Modal */}
-        {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <form 
-            className="bg-white p-6 rounded-lg w-full max-w-md space-y-4"
-            onSubmit={handleChangePassword}
-            >
-            <h2 className="text-xl font-semibold">Change Password</h2>
-            
-            {passwordError && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                {passwordError}
-                </div>
-            )}
-
-            <div className="space-y-4">
-                <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                </div>
-                
-                <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                </div>
-                
-                <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-                <button 
-                type="button" 
-                onClick={() => {
-                    setShowChangePasswordModal(false);
-                    setPasswordError('');
-                }} 
-                className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-                >
-                Cancel
-                </button>
-                <button 
-                type="submit" 
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-                >
-                Change Password
-                </button>
-            </div>
-            </form>
-        </div>
-        )}
       </div>
     </div>
   );
 }
+
 export default StudentDashboard;

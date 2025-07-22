@@ -18,7 +18,7 @@ export default function Home() {
       image: '/images/keerthu.jpg',
     },
     {
-      name: 'Abirami',
+      name: 'Abirami R',
       roll: '2023103020',
       image: '/images/abi.jpg',
     },
@@ -39,10 +39,10 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-grow flex flex-col items-center justify-center z-10 py-20 px-4 mt-[36px] relative">
+      <div className="flex-grow flex flex-col items-center justify-center z-10 py-20 px-4 mt-[100px] relative">
 
         <h1 className="text-4xl font-extrabold text-blue-800 mb-4 drop-shadow-lg animate-fadeIn">
-          Welcome to DCSE Achievements Portal
+          Welcome to DCSE Achievements Repository
         </h1>
 
         <p className="text-gray-600 max-w-xl text-center mb-10 animate-fadeIn delay-200">
@@ -73,7 +73,7 @@ export default function Home() {
       </div>
       <div className="absolute right-4 top-1/2 transform translate-y-[-50%] w-16 h-16 bg-blue-200 opacity-20 rounded-full animate-pulseSlow"></div>
       {/* Contributors Section */}
-      <div className="w-full bg-blue-50 py-10 px-4 -mt-[64px] relative z-20">
+      <div className="w-full bg-blue-50 py-3 px-4 -mt-[35px] relative z-20">
         <h2 className="text-2xl font-bold text-center text-blue-800 mb-12">
           Our Contributors
         </h2>
