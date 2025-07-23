@@ -136,12 +136,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative overflow-hidden">
 
-      {/* Background Circles Limited to Main Section */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-10 left-10 w-56 h-56 bg-blue-200 opacity-30 rounded-full animate-pulseSlow"></div>
-        <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-300 opacity-20 rounded-full animate-pulseSlow"></div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-grow flex flex-col items-center justify-center z-10 py-20 px-4 mt-[100px] relative">
 

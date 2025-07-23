@@ -1162,53 +1162,6 @@ app.put('/api/student/cgpa', authMiddleware('student'), async (req, res) => {
   }
 });
 
-// Profile photo upload
-app.post('/api/student/profile-photo', authMiddleware('student'), upload.single('profilePhoto'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png'];
-    if (!validTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ error: 'Only JPEG and PNG images are allowed' });
-    }
-
-    // Validate file size (2MB max)
-    if (req.file.size > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File size must be less than 2MB' });
-    }
-
-    const student = await Student.findByIdAndUpdate(
-      req.user.id,
-      { profilePhoto: req.file.filename },
-      { new: true }
-    ).select('-password'); // Exclude password from response
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    res.json({
-      success: true,
-      filename: req.file.filename,
-      profilePhotoUrl: `/profile-photos/${req.file.filename}`,
-      message: 'Profile photo updated successfully'
-    });
-  } catch (error) {
-    console.error('Profile photo upload error:', error);
-    res.status(500).json({ error: 'Failed to update profile photo' });
-  }
-});
-
-// Serve profile photos
-app.get('/profile-photos/:filename', (req, res) => {
-  res.sendFile(path.join(__dirname, 'uploads', 'profile-photos', req.params.filename));
-});
-
-
-
 // Start server
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
