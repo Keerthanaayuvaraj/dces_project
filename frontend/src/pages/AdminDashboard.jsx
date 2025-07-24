@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-//const yearOptions = ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
 const batches = ['N', 'P', 'Q'];
 
 const AdminDashboard = () => {
@@ -18,7 +17,6 @@ const AdminDashboard = () => {
   return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
 };
 
-//const yearOfStudy = `${formatDate(student.startOfStudy)} - ${formatDate(student.endOfStudy)}`;
 
 
   const allExportFields = [
@@ -129,10 +127,7 @@ const allCols = [...staticCols, ...dynamicCols];
     setFilters({ ...filters, [e.target.name]: e.target.checked });
   };
 
-  // const handleApplyFilters = (e) => {
-  //   e.preventDefault();
-  //   fetchStudents();
-  // };
+
   const handleApplyFilters = (e) => {
   e.preventDefault();
   setAppliedFilters({ ...filters }); // snapshot current filters
@@ -203,7 +198,7 @@ const allCols = [...staticCols, ...dynamicCols];
 
   return (
      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative overflow-hidden">
-    
+
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       <div className="flex justify-between items-center mb-6">
@@ -357,59 +352,6 @@ const allCols = [...staticCols, ...dynamicCols];
 >
   Reset Filters
 </button>
-
-          {/* <button
-  type="button"
-  onClick={() => {
-    const resetFilters = {
-      fromYear: '',
-      toYear: '',
-      batch: '',
-      hasInterned: false,
-      isPlaced: false,
-      isHigherEd: false,
-      isCompExam: false,
-      isCourse: false,
-      isAchievement: false,
-      isParticipation: false,
-      isExtraC: false,
-      cgpaMin: '',
-      search: ''
-    };
-    setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-    fetchStudents(); // <- Trigger fetch immediately after resetting
-  }}
-  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
->
-  Reset Filters
-</button> */}
-
-          {/* <button
-  type="button"
-  onClick={() =>
-    setFilters({
-      fromYear: '',
-      toYear: '',
-      batch: '',
-      hasInterned: false,
-      isPlaced: false,
-      isHigherEd: false,
-      isCompExam: false,
-      isCourse: false,
-      isAchievement: false,
-      isParticipation: false,
-      isExtraC: false,
-      cgpaMin: '',
-      search: ''
-    })
-  }
-  
-  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
->
-  Reset Filters
-</button> */}
-
         </div>
       </form>
 
@@ -449,86 +391,65 @@ const allCols = [...staticCols, ...dynamicCols];
             </button>
           </div>
         </div>
-      )}
+      )}        <div className="bg-white rounded shadow p-4 overflow-x-auto mt-6">
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            <table className="min-w-full">
+              <thead>
+                <tr>
+                  {allCols.map(col => (
+                    <th key={col.key} className="px-4 py-2">{col.label}</th>
+                  ))}
+                  <th className="px-4 py-2">Actions</th>
+                </tr>
+              </thead>
 
-      <div className="bg-white rounded shadow p-4 overflow-x-auto mt-6">
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <table className="min-w-full">
-            {/* <thead>
-              <tr>
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Roll</th>
-                <th className="px-4 py-2">Year</th>
-                <th className="px-4 py-2">Batch</th>
-                <th className="px-4 py-2">CGPA</th>
-                <th className="px-4 py-2">Interned</th>
-                <th className="px-4 py-2">Placed</th>
-                <th className="px-4 py-2">Actions</th>
-              </tr>
-            </thead> */}
-            <thead>
-              <tr>
-                {allCols.map(col => (
-                  <th key={col.key} className="px-4 py-2">{col.label}</th>
-                ))}
-                <th className="px-4 py-2">Actions</th>
-              </tr>
-            </thead>
+              <tbody>
+                {students.map((student) => {
+                  return (
+                    <tr key={student._id} className="border-t">
+                      {staticCols.map(col => (
+                        <td key={col.key} className="px-4 py-2">{student[col.key]}</td>
+                      ))}
 
-            <tbody>
-      {students.map((student) => {
-        return (
-          <tr key={student._id} className="border-t">
-            {/* Static fields */}
-            {staticCols.map(col => (
-              <td key={col.key} className="px-4 py-2">{student[col.key]}</td>
-              
-            ))}
-            
+                      {activeCategories.flatMap(cat => {
+                        const rawData = student.achievementsByCategory?.[cat];
+                        const data = Array.isArray(rawData) ? rawData : [];
 
-            {/* Dynamic category fields */}
-            {activeCategories.flatMap(cat => {
-              const data = student.achievementsByCategory?.[cat] || [];
+                        const companies = data.map(d => d.companyName || d.title).join(', ') || '-';
 
-              const companies = data.map(d => d.companyName || d.title).join(', ') || '-';
+                        const timeline = data.map(d => {
+                          const from = d.fromDate ? new Date(d.fromDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
+                          const to = d.toDate ? new Date(d.toDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
+                          return from && to ? `${from} - ${to}` : from || to || '-';
+                        }).join('; ') || '-';
 
-              const timeline = data.map(d => {
-                const from = d.fromDate ? new Date(d.fromDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
-                const to = d.toDate ? new Date(d.toDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
-                return from && to ? `${from} - ${to}` : from || to || '-';
-              }).join('; ') || '-';
+                        return [
+                          <td key={`${cat}_company-${student._id}`} className="px-4 py-2">{companies}</td>,
+                          <td key={`${cat}_timeline-${student._id}`} className="px-4 py-2">{timeline}</td>,
+                        ];
+                      })}
 
-              return [
-                <td key={`${cat}_company-${student._id}`} className="px-4 py-2">{companies}</td>,
-                <td key={`${cat}_timeline-${student._id}`} className="px-4 py-2">{timeline}</td>,
-              ];
-            })}
-
-        {/* Action */}
-        <td className="px-4 py-2">
-          <button
-            onClick={() => navigate(`/student/${student._id}`)}
-            className="bg-blue-400 text-white px-2 py-1 rounded"
-          >
-            View
-          </button>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
-
-          </table>
-        )}
-        {!loading && students.length === 0 && <p>No students found.</p>}
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => navigate(`/student/${student._id}`)}
+                          className="bg-blue-400 text-white px-2 py-1 rounded"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          {!loading && students.length === 0 && <p>No students found.</p>}
+        </div>
       </div>
     </div>
-    </div>
   );
-  
 };
 
 export default AdminDashboard;
