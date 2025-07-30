@@ -594,6 +594,18 @@ function StudentDashboard() {
                 >
                 Generate Full Report
               </button>
+              <button
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/achievement repository guide me page.pdf';
+                  link.download = 'achievement repository guide me page.pdf';
+                  link.click();
+                }}
+                className="relative group w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 text-black text-sm font-bold"
+                title="Click to download manual"
+              >
+                ?
+              </button>
             </div>
           </>
         )}
