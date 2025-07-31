@@ -13,7 +13,7 @@ const studentRepoTiles = [
   "Extra-Curricular Activities",
 ];
 
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = "http://10.5.12.1:3000";
 
 function StudentDashboard() {
   const [activeSection, setActiveSection] = useState("Student Repository");
@@ -37,6 +37,44 @@ function StudentDashboard() {
   const [updateCgpaModal, setUpdateCgpaModal] = useState(false);
   const navigate = useNavigate();
 
+
+  useEffect(() => {
+    const helpIcon = document.getElementById("guide-button");
+  
+    if (helpIcon) {
+      // Tooltip box
+      const tooltip = document.createElement("div");
+      tooltip.className =
+        "absolute z-50 bg-blue-600 text-white font-bold text-sm px-3 py-2 rounded shadow-lg animate-bounce";
+      tooltip.innerText = "Guide me!";
+  
+      // Style the tooltip position: left and slightly above the "?" button
+      tooltip.style.position = "absolute";
+      tooltip.style.top = "-10px";              // slightly above button
+      tooltip.style.left = "120%";            // to the left of the button
+  
+      // Triangle pointer
+      const pointer = document.createElement("div");
+pointer.style.position = "absolute";
+pointer.style.top = "50%";
+pointer.style.left = "-6px"; // position on the left side
+pointer.style.transform = "translateY(-50%)";
+pointer.style.width = "0";
+pointer.style.height = "0";
+
+// Triangle pointing left: only borderRight is colored
+pointer.style.borderTop = "6px solid transparent";
+pointer.style.borderBottom = "6px solid transparent";
+pointer.style.borderRight = "6px solid #2563eb"; // blue-600
+  
+      tooltip.appendChild(pointer);
+      helpIcon.parentElement.appendChild(tooltip);
+  
+      setTimeout(() => {
+        tooltip.remove();
+      }, 5000);
+    }
+  }, []);
   // Fetch profile data and achievements
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,7 +82,7 @@ function StudentDashboard() {
       navigate('/studentlogin');
       return;
     }
-
+    
     const fetchProfileAndData = async () => {
       try {
         // Fetch profile
@@ -453,11 +491,6 @@ function StudentDashboard() {
       return;
     }
 
-    /*if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
-      return;
-    }*/
-
     try {
       const res = await fetch(`${BACKEND_URL}/change-password`, {
         method: 'PUT',
@@ -489,13 +522,13 @@ function StudentDashboard() {
     <div className="relative">
       <button 
         onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-        className="flex items-center gap-2 hover:bg-gray-200 rounded-full p-1 transition"
+        className="flex items-center gap-2 hover:bg-gray-100 rounded-full p-1 transition shadow-none hover:shadow-none"
       >
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center mt-4">
           {profilePhoto ? (
             <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
           ) : (
-            <span className="text-lg font-medium">
+            <span className="text-3xl font-semibold">
               {userInfo?.name?.charAt(0).toUpperCase() || 'U'}
             </span>
           )}
@@ -506,8 +539,8 @@ function StudentDashboard() {
         <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
           <div className="px-4 py-3 border-b">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
-                  <span className="text-xl font-medium">
+              <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center">
+                  <span className="text-2xl font-semibold">
                     {userInfo?.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 
@@ -552,25 +585,27 @@ function StudentDashboard() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="flex-1 p-6 relative overflow-auto">
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative overflow-hidden">
+
+      <div className="flex-1 p-8 relative overflow-auto">
         {/* Welcome and Profile Section */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-xl font-semibold">
+        
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-3xl font-semibold">
             Welcome, {userInfo?.name || 'Student'}!
           </div>
           
             
             {renderProfileDropdown()}
       </div>
-      <h1 className="text-3xl font-semibold mb-6">
+      <h1 className="text-4xl font-bold text-blue-800 mb-12">
           {activeTile || activeSection}
       </h1>
 
         {/* Tile View */}
         {activeSection === "Student Repository" && !activeTile && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {studentRepoTiles.map((title) => (
                 <div
                   key={title}
@@ -580,6 +615,32 @@ function StudentDashboard() {
                   {title}
                 </div>
               ))}
+            </div>
+            <div className="flex justify-end absolute left-4 bottom-1 mb-4 gap-2">
+              <div className="relative group">
+      <button
+        onClick={() => {
+          const link = document.createElement("a");
+          link.href = "/student guide.pdf";
+          link.download = "achievement repository guide me page (students).pdf";
+          link.click();
+        }}
+        id="guide-button"
+        className="w-8 h-8 rounded-full bg-blue-200 hover:bg-blue-300 text-black text-lg font-bold flex items-center justify-center shadow"
+
+      >
+        ?
+      </button>
+
+      {/* Hover tooltip */}
+  <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-sm font-bold px-3 py-2 rounded-md w-52 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+  Guide me! Click to download manual
+
+  {/* Left-pointing triangle (◀ pointing into the icon) */}
+  <div className="absolute left-[-8px] top-1/2 -translate-y-1/2 w-0 h-0 
+                  border-y-8 border-r-8 border-y-transparent border-r-blue-600"></div>
+</div>
+    </div>
             </div>
             <div className="flex justify-end absolute right-4 bottom-1 mb-4 gap-2">
               <button
@@ -594,6 +655,7 @@ function StudentDashboard() {
                 >
                 Generate Full Report
               </button>
+              
             </div>
           </>
         )}

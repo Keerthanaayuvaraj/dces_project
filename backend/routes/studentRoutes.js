@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Student = require('../model/student');
+const Admin = require('../model/admin');
 const { registerStudent, registerAdmin, login, authMiddleware } = require('../auth');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
@@ -76,17 +77,7 @@ router.get('/students', authMiddleware('admin'), async (req, res) => {
 
     const isCategoryFilterActive = selectedCategories.length > 0;
 
-    // 🟠 CASE 2: Year-only filter
-    // if (pf && pt && !isCategoryFilterActive) {
-    //   students = students.filter(student => {
-    //     const [start, end] = student.yearOfStudy.split('-').map(Number);
-    //     return (
-    //       (start >= pf && start <= pt) ||
-    //       (end >= pf && end <= pt) ||
-    //       (start < pf && end > pt)
-    //     );
-    //   });
-    // }
+
     if (pf && pt && !isCategoryFilterActive) {
   students = students.filter(student => {
     const [start, end] = student.yearOfStudy.split('-').map(y => new Date(`${y}-01-01`));
@@ -145,106 +136,6 @@ router.get('/students', authMiddleware('admin'), async (req, res) => {
   }
 });
 
-
-// Single Student Details
-// router.get('/students/:id', authMiddleware('admin'), async (req, res) => {
-//   try {
-//     const student = await Student.findById(req.params.id);
-//     if (!student) return res.status(404).json({ error: 'Student not found' });
-
-//     const achievements = await StudentAchievement.find({ studentId: student._id });
-//     const grouped = achievements.reduce((acc, ach) => {
-//       acc[ach.category] = acc[ach.category] || [];
-//       acc[ach.category].push(ach);
-//       return acc;
-//     }, {});
-
-//     res.json({ ...student.toObject(), achievementsByCategory: grouped });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Failed to fetch student' });
-//   }
-// });
-
-// // PDF for Single Student
-// router.get('/students/:id/report', authMiddleware('admin'), async (req, res) => {
-//   try {
-//     const student = await Student.findById(req.params.id);
-//     if (!student) return res.status(404).json({ error: 'Student not found' });
-
-//     const achievements = await StudentAchievement.find({ studentId: student._id });
-//     const grouped = achievements.reduce((acc, ach) => {
-//       acc[ach.category] = acc[ach.category] || [];
-//       acc[ach.category].push(ach);
-//       return acc;
-//     }, {});
-
-//     const doc = new PDFDocument({ margin: 40 });
-//     res.setHeader('Content-Type', 'application/pdf');
-//     res.setHeader('Content-Disposition', `attachment; filename="student_${student._id}_report.pdf"`);
-//     doc.pipe(res);
-
-//     // Title
-//     doc.font('Times-Bold').fontSize(22).text('Student Achievement Report', { align: 'center', underline: true });
-//     doc.moveDown(1.5);
-
-//     // Student Details
-//     const info = [
-//       ['Name', student.name],
-//       ['Email', student.email],
-//       ['Year of Study', student.yearOfStudy],
-//       ['Batch', student.batch],
-//       ['CGPA', student.cgpa || ''],
-//       ['Interned', student.hasInterned ? 'Yes' : 'No'],
-//       ['Placed', student.isPlaced ? 'Yes' : 'No']
-//     ];
-
-//     doc.fontSize(13).text('Student Details', { underline: true }).moveDown(0.5);
-//     info.forEach(([label, value]) => {
-//       doc.font('Times-Bold').text(`${label}: `, { continued: true });
-//       doc.font('Times-Roman').text(value);
-//     });
-
-//     // Achievements Section
-//     doc.moveDown(1).fontSize(13).text('Achievements & Uploads', { underline: true }).moveDown(0.5);
-
-//     if (Object.keys(grouped).length === 0) {
-//       doc.font('Times-Roman').text('No uploads/achievements found.');
-//     } else {
-//       Object.entries(grouped).forEach(([category, items]) => {
-//         doc.font('Times-Bold').fontSize(12).fillColor('blue').text(category).moveDown(0.2);
-
-//         items.forEach((a, idx) => {
-//           const formatMonthYear = (dateStr) => {
-//             if (!dateStr) return null;
-//             const options = { year: 'numeric', month: 'short' };
-//             return new Date(dateStr).toLocaleDateString('en-US', options);
-//           };
-
-//           const from = formatMonthYear(a.fromDate);
-//           const to = a.toDate ? formatMonthYear(a.toDate) : 'Present';
-//           const timePeriod = from && to ? `${from} – ${to}` : a.timePeriod || 'N/A';
-
-
-//           doc.font('Times-Bold').fontSize(11).fillColor('black').text(`${idx + 1}. ${a.title} (${timePeriod})`);
-//           doc.font('Times-Roman').text(`Description: ${a.description}`);
-//           doc.text(`Short Description: ${a.shortDescription}`);
-//           doc.text(`File: ${a.file?.filename || 'N/A'}`).moveDown(0.5);
-//         });
-
-//         // Add light gray divider between categories
-//         doc.moveDown(0.3);
-//         doc.moveTo(doc.x, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#cccccc').stroke();
-//         doc.moveDown(0.5);
-//       });
-//     }
-
-//     doc.end();
-//   } catch (err) {
-//     res.status(500).json({ error: 'Failed to generate PDF' });
-//   }
-// });
-
-//const upload = multer({ dest: 'uploads/' });
 
 // Single Student Details
 router.get('/students/:id', authMiddleware('admin'), async (req, res) => {
@@ -711,15 +602,6 @@ router.get('/students/documents/zip', authMiddleware('admin'), async (req, res) 
         });
       }
 
-      // if (searchRegex) {
-      //   achievements = achievements.filter(a =>
-      //     searchRegex.test(a.title) ||
-      //     searchRegex.test(a.description) ||
-      //     searchRegex.test(a.shortDescription) ||
-      //     searchRegex.test(a.companyName)
-      //   );
-      // }
-
       for (const ach of achievements) {
         if (ach.file?.data && ach.file?.filename) {
           const ext = ach.file.filename.split('.').pop();
@@ -841,8 +723,8 @@ const transporter = nodemailer.createTransport({
   port: 465,                   // Use SSL port
   secure: true, 
   auth: {
-    user: 'jennyalice1903@gmail.com',
-    pass: 'hxtmsutfruwuittk',
+    user: 'cseceg24@gmail.com',
+    pass: 'gvuvoumzoufcimcp',
   },
 });
 
@@ -861,7 +743,7 @@ router.post('/student/forgot-password', async (req, res) => {
 
     // Send email
     await transporter.sendMail({
-      from: 'jennyalice1903@gmail.com',
+      from: 'cseceg24@gmail.com',
       to: student.email,
       subject: "Password Reset OTP",
       html: `<p>Your OTP is: <strong>${otp}</strong></p><p>It is valid for 10 minutes.</p>`
@@ -937,7 +819,7 @@ router.post('/admin/forgot-password', async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: 'jennyalice1903@gmail.com',
+      from: 'cseceg24@gmail.com',
       to: admin.email,
       subject: 'Admin Password Reset OTP',
       html: `<p>Your OTP is: <strong>${otp}</strong></p><p>It expires in 10 minutes.</p>`,

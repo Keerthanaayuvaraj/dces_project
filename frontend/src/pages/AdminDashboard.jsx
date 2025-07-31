@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
+import { FaQuestionCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
 import 'react-datepicker/dist/react-datepicker.css';
 
-//const yearOptions = ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+
 const batches = ['N', 'P', 'Q'];
 
 const AdminDashboard = () => {
@@ -12,13 +13,25 @@ const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
+  
+  // Change Password Modal State
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
 };
 
-//const yearOfStudy = `${formatDate(student.startOfStudy)} - ${formatDate(student.endOfStudy)}`;
 
 
   const allExportFields = [
@@ -116,6 +129,43 @@ const allCols = [...staticCols, ...dynamicCols];
     }
     setLoading(false);
   };
+  
+useEffect(() => {
+  const helpIcon = document.getElementById("guide-button");
+
+  if (helpIcon) {
+    // Tooltip box
+    const tooltip = document.createElement("div");
+    tooltip.className =
+      "absolute z-50 bg-blue-600 text-white font-bold text-sm px-3 py-2 rounded shadow-lg animate-bounce";
+    tooltip.innerText = "Guide me!";
+
+    // Style the tooltip position: left and slightly above the "?" button
+    tooltip.style.position = "absolute";
+    tooltip.style.top = "-10px";              // slightly above button
+    tooltip.style.right = "110%";            // to the left of the button
+
+    // Triangle pointer
+    const pointer = document.createElement("div");
+    pointer.style.position = "absolute";
+    pointer.style.top = "50%";
+    pointer.style.right = "-6px";
+    pointer.style.transform = "translateY(-50%)";
+    pointer.style.width = "0";
+    pointer.style.height = "0";
+    pointer.style.borderTop = "6px solid transparent";
+    pointer.style.borderBottom = "6px solid transparent";
+    pointer.style.borderLeft = "6px solid #2563eb"; // blue-600
+
+    tooltip.appendChild(pointer);
+    helpIcon.parentElement.appendChild(tooltip);
+
+    setTimeout(() => {
+      tooltip.remove();
+    }, 5000);
+  }
+}, []);
+
 
   useEffect(() => {
     fetchStudents();
@@ -129,10 +179,7 @@ const allCols = [...staticCols, ...dynamicCols];
     setFilters({ ...filters, [e.target.name]: e.target.checked });
   };
 
-  // const handleApplyFilters = (e) => {
-  //   e.preventDefault();
-  //   fetchStudents();
-  // };
+
   const handleApplyFilters = (e) => {
   e.preventDefault();
   setAppliedFilters({ ...filters }); // snapshot current filters
@@ -201,14 +248,87 @@ const allCols = [...staticCols, ...dynamicCols];
       });
   };
 
+  // Change Password Handler
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords don't match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const response = await api.post('/admin/change-password', {
+        oldPassword: currentPassword,
+        newPassword: newPassword
+      });
+
+      alert('Password changed successfully!');
+      setShowChangePasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
+    } catch (err) {
+      setPasswordError(err.response?.data?.error || 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative overflow-hidden">
-    
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="flex justify-between items-center mb-6">
+    
+    <div className="flex justify-between items-center mb-2">
+      <h1 className="text-5xl pt-6 font-bold">Admin Dashboard</h1>
+
+    <div className="relative group">
+      <button
+        onClick={() => {
+          const link = document.createElement("a");
+          link.href = "/admin guide.pdf";
+          link.download = "achievement repository guide me page (Admin).pdf";
+          link.click();
+        }}
+        id="guide-button"
+        className="w-8 h-8 rounded-full bg-blue-200 hover:bg-blue-300 text-black text-lg font-bold flex items-center justify-center shadow"
+
+      >
+        ?
+      </button>
+
+      {/* Hover tooltip */}
+   <div className="absolute right-10 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-sm font-bold px-3 py-2 rounded-md w-52 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+    Guide me! Click to download manual
+
+    {/* Right-pointing triangle */}
+    <div className="absolute right-[-8px] top-1/2 -translate-y-1/2 w-0 h-0 
+                    border-y-8 border-l-8 border-y-transparent border-l-blue-600"></div>
+  </div>
+    </div>
+  </div>
+    <div className="flex justify-between items-center mb-6 -mt-2">
   <div></div> {/* empty div to push buttons right */}
   <div className="flex gap-4">
+    <button
+      onClick={() => setShowChangePasswordModal(true)}
+      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+    >
+      Change Password
+    </button>
     <button
       onClick={() => navigate('/register')}
       className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
@@ -224,6 +344,7 @@ const allCols = [...staticCols, ...dynamicCols];
     >
       Logout
     </button>
+    
   </div>
 </div>
 
@@ -357,59 +478,6 @@ const allCols = [...staticCols, ...dynamicCols];
 >
   Reset Filters
 </button>
-
-          {/* <button
-  type="button"
-  onClick={() => {
-    const resetFilters = {
-      fromYear: '',
-      toYear: '',
-      batch: '',
-      hasInterned: false,
-      isPlaced: false,
-      isHigherEd: false,
-      isCompExam: false,
-      isCourse: false,
-      isAchievement: false,
-      isParticipation: false,
-      isExtraC: false,
-      cgpaMin: '',
-      search: ''
-    };
-    setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-    fetchStudents(); // <- Trigger fetch immediately after resetting
-  }}
-  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
->
-  Reset Filters
-</button> */}
-
-          {/* <button
-  type="button"
-  onClick={() =>
-    setFilters({
-      fromYear: '',
-      toYear: '',
-      batch: '',
-      hasInterned: false,
-      isPlaced: false,
-      isHigherEd: false,
-      isCompExam: false,
-      isCourse: false,
-      isAchievement: false,
-      isParticipation: false,
-      isExtraC: false,
-      cgpaMin: '',
-      search: ''
-    })
-  }
-  
-  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
->
-  Reset Filters
-</button> */}
-
         </div>
       </form>
 
@@ -449,86 +517,182 @@ const allCols = [...staticCols, ...dynamicCols];
             </button>
           </div>
         </div>
-      )}
+      )}        <div className="bg-white rounded shadow p-4 overflow-x-auto mt-6">
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            <table className="min-w-full">
+              <thead>
+                <tr>
+                  {allCols.map(col => (
+                    <th key={col.key} className="px-4 py-2">{col.label}</th>
+                  ))}
+                  <th className="px-4 py-2">Actions</th>
+                </tr>
+              </thead>
 
-      <div className="bg-white rounded shadow p-4 overflow-x-auto mt-6">
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <table className="min-w-full">
-            {/* <thead>
-              <tr>
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Roll</th>
-                <th className="px-4 py-2">Year</th>
-                <th className="px-4 py-2">Batch</th>
-                <th className="px-4 py-2">CGPA</th>
-                <th className="px-4 py-2">Interned</th>
-                <th className="px-4 py-2">Placed</th>
-                <th className="px-4 py-2">Actions</th>
-              </tr>
-            </thead> */}
-            <thead>
-              <tr>
-                {allCols.map(col => (
-                  <th key={col.key} className="px-4 py-2">{col.label}</th>
-                ))}
-                <th className="px-4 py-2">Actions</th>
-              </tr>
-            </thead>
+              <tbody>
+                {students.map((student) => {
+                  return (
+                    <tr key={student._id} className="border-t">
+                      {staticCols.map(col => (
+                        <td key={col.key} className="px-4 py-2">{student[col.key]}</td>
+                      ))}
 
-            <tbody>
-      {students.map((student) => {
-        return (
-          <tr key={student._id} className="border-t">
-            {/* Static fields */}
-            {staticCols.map(col => (
-              <td key={col.key} className="px-4 py-2">{student[col.key]}</td>
-              
-            ))}
-            
+                      {activeCategories.flatMap(cat => {
+                        const rawData = student.achievementsByCategory?.[cat];
+                        const data = Array.isArray(rawData) ? rawData : [];
 
-            {/* Dynamic category fields */}
-            {activeCategories.flatMap(cat => {
-              const data = student.achievementsByCategory?.[cat] || [];
+                        const companies = data.map(d => d.companyName || d.title).join(', ') || '-';
 
-              const companies = data.map(d => d.companyName || d.title).join(', ') || '-';
+                        const timeline = data.map(d => {
+                          const from = d.fromDate ? new Date(d.fromDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
+                          const to = d.toDate ? new Date(d.toDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
+                          return from && to ? `${from} - ${to}` : from || to || '-';
+                        }).join('; ') || '-';
 
-              const timeline = data.map(d => {
-                const from = d.fromDate ? new Date(d.fromDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
-                const to = d.toDate ? new Date(d.toDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
-                return from && to ? `${from} - ${to}` : from || to || '-';
-              }).join('; ') || '-';
+                        return [
+                          <td key={`${cat}_company-${student._id}`} className="px-4 py-2">{companies}</td>,
+                          <td key={`${cat}_timeline-${student._id}`} className="px-4 py-2">{timeline}</td>,
+                        ];
+                      })}
 
-              return [
-                <td key={`${cat}_company-${student._id}`} className="px-4 py-2">{companies}</td>,
-                <td key={`${cat}_timeline-${student._id}`} className="px-4 py-2">{timeline}</td>,
-              ];
-            })}
-
-        {/* Action */}
-        <td className="px-4 py-2">
-          <button
-            onClick={() => navigate(`/student/${student._id}`)}
-            className="bg-blue-400 text-white px-2 py-1 rounded"
-          >
-            View
-          </button>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
-
-          </table>
-        )}
-        {!loading && students.length === 0 && <p>No students found.</p>}
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => navigate(`/student/${student._id}`)}
+                          className="bg-blue-400 text-white px-2 py-1 rounded"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          {!loading && students.length === 0 && <p>No students found.</p>}
+        </div>
       </div>
-    </div>
+
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Change Password</h2>
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setPasswordError('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleChangePassword}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Password
+                </label>
+                 <div className="relative">
+          <input
+            type={showCurrent ? 'text' : 'password'}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full p-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <div
+            className="absolute right-2 top-2.5 cursor-pointer text-gray-600"
+            onClick={() => setShowCurrent((prev) => !prev)}
+          >
+            {showCurrent ? <FaEyeSlash /> : <FaEye />}
+          </div>
+        </div>
+      </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+          <input
+            type={showNew ? 'text' : 'password'}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full p-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <div
+            className="absolute right-2 top-2.5 cursor-pointer text-gray-600"
+            onClick={() => setShowNew((prev) => !prev)}
+          >
+            {showNew ? <FaEyeSlash /> : <FaEye />}
+          </div>
+        </div>
+      </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm New Password
+                </label>
+               <div className="relative">
+          <input
+            type={showConfirm ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full p-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <div
+            className="absolute right-2 top-2.5 cursor-pointer text-gray-600"
+            onClick={() => setShowConfirm((prev) => !prev)}
+          >
+            {showConfirm ? <FaEyeSlash /> : <FaEye />}
+          </div>
+        </div>
+      </div>
+              
+              {passwordError && (
+                <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {passwordError}
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="flex-1 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {passwordLoading ? 'Changing...' : 'Change Password'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowChangePasswordModal(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError('');
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-  
 };
 
 export default AdminDashboard;

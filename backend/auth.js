@@ -47,20 +47,6 @@ async function registerStudent(req, res) {
   }
 }
 
-// Register Admin
-// async function registerAdmin(req, res) {
-//   try {
-//     const { name, email, password } = req.body;
-//     const existing = await Admin.findOne({ email });
-//     if (existing) return res.status(400).json({ error: 'Email already registered' });
-//     const admin = new Admin({ name, email, password });
-//     await admin.save();
-//     const token = generateToken(admin, 'admin');
-//     res.status(201).json({ token, admin });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Registration failed' });
-//   }
-// }
 
 async function registerAdmin(req, res) {
   try {

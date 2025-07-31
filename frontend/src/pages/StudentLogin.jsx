@@ -19,7 +19,7 @@ const StudentLogin = () => {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post(`http://localhost:5000/api/login/student`, { email, password });
+      const res = await axios.post(`http://10.5.12.1:3000/api/login/student`, { email, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', 'student');
       localStorage.setItem('userName', res.data.user?.name || 'Student');
@@ -34,7 +34,7 @@ const StudentLogin = () => {
     e.preventDefault();
     setError('');
     try {
-      await axios.post(`http://localhost:5000/api/student/forgot-password`, { registerNo });
+      await axios.post(`http://10.5.12.1:3000/api/student/forgot-password`, { registerNo });
       setStep('verify');
       setMessage('OTP sent to your registered email');
     } catch (err) {
@@ -46,7 +46,7 @@ const StudentLogin = () => {
     e.preventDefault();
     setError('');
     try {
-      await axios.post(`http://localhost:5000/api/student/verify-otp`, { registerNo, otp });
+      await axios.post(`http://10.5.12.1:3000/api/student/verify-otp`, { registerNo, otp });
       setStep('reset');
       setMessage('OTP verified. Please set your new password');
     } catch (err) {
@@ -58,7 +58,7 @@ const StudentLogin = () => {
     e.preventDefault();
     setError('');
     try {
-      await axios.post(`http://localhost:5000/api/student/reset-password`, { registerNo, newPassword });
+      await axios.post(`http://10.5.12.1:3000/api/student/reset-password`, { registerNo, newPassword });
       setStep('login');
       setMessage('Password reset successful! Please log in.');
       setError('');
@@ -69,6 +69,10 @@ const StudentLogin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex flex-col relative overflow-hidden">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-10 left-10 w-56 h-56 bg-blue-200 opacity-30 rounded-full animate-pulseSlow"></div>
+        <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-300 opacity-20 rounded-full animate-pulseSlow"></div>
+      </div>
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="relative bg-white shadow-xl rounded-xl p-8 max-w-md w-full">
           {/* Tooltip Icon */}
