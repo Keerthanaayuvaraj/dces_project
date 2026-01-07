@@ -178,7 +178,7 @@ const payload = {
           </button>
         </form>
       )}
-
+{/*
       {registerType === 'bulk-student' && (
         <form onSubmit={handleFileUpload} className="bg-white p-8 rounded shadow-md w-80">
           <h2 className="text-xl font-bold mb-4">Upload Students Excel File</h2>
@@ -192,7 +192,38 @@ const payload = {
           </button>
         </form>
       )}
+*/}
+ 
+ {registerType === 'bulk-student' && (
+  <form onSubmit={handleFileUpload} className="bg-white p-8 rounded shadow-md w-80">
+    <h2 className="text-xl font-bold mb-4">Upload Students Excel File</h2>
 
+    <input
+      type="file"
+      accept=".xlsx, .xls"
+      onChange={e => setFile(e.target.files[0])}
+      className="mb-4 w-full p-2 border rounded"
+    />
+
+    {error && <div className="text-red-500 mb-2">{error}</div>}
+
+    <button
+      type="submit"
+      className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 mb-4"
+    >
+      Upload File
+    </button>
+
+    {/* Download Template Button */}
+    <a
+      href="/bulk_students_sample.xlsx" // make sure this file exists in public/
+      download
+      className="w-full block text-center bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+    >
+      Download Template
+    </a>
+  </form>
+)}
       {registerType === 'admin' && (
         <form onSubmit={handleAdminRegister} className="bg-white p-8 rounded shadow-md w-80">
           <h2 className="text-xl font-bold mb-4">Register Admin</h2>

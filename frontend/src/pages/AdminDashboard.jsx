@@ -299,7 +299,7 @@ useEffect(() => {
       <button
         onClick={() => {
           const link = document.createElement("a");
-          link.href = "/admin guide.pdf";
+          link.href = "/Admin Guide-me page (student achievement repository)updated.pdf";
           link.download = "achievement repository guide me page (Admin).pdf";
           link.click();
         }}

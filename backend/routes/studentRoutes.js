@@ -211,8 +211,8 @@ router.get('/students/:id/report', authMiddleware('admin'), async (req, res) => 
       ['CGPA', student.cgpa != null ? student.cgpa : 'N/A'],
       ['Interned', student.hasInterned ? 'Yes' : 'No'],
       ['Placed', student.isPlaced ? 'Yes' : 'No'],
-      ['Start of Study', student.startOfStudy ? new Date(student.startOfStudy).toLocaleDateString() : 'N/A'],
-      ['End of Study', student.endOfStudy ? new Date(student.endOfStudy).toLocaleDateString() : 'N/A']
+//      ['Start of Study', student.startOfStudy ? new Date(student.startOfStudy).toLocaleDateString() : 'N/A'],
+//      ['End of Study', student.endOfStudy ? new Date(student.endOfStudy).toLocaleDateString() : 'N/A']
     ];
 
     doc.fontSize(13).text('Student Details', { underline: true }).moveDown(0.5);
@@ -657,13 +657,21 @@ router.post('/students/:id/selective-report', authMiddleware('admin'), async (re
 
     // Student Details
     const info = [
-      ['Name', student.name],
-      ['Email', student.email],
-      ['Year of Study', student.yearOfStudy],
-      ['Batch', student.batch],
-      ['CGPA', student.cgpa || ''],
+	['Name', student.name || ''],
+      ['Email', student.email || ''],
+      ['Year of Study', student.yearOfStudy || 'Not specified'],
+      ['Batch', student.batch || ''],
+      ['CGPA', student.cgpa != null ? student.cgpa : 'N/A'],
       ['Interned', student.hasInterned ? 'Yes' : 'No'],
-      ['Placed', student.isPlaced ? 'Yes' : 'No']
+      ['Placed', student.isPlaced ? 'Yes' : 'No'],
+
+//      ['Name', student.name],
+//      ['Email', student.email],
+//      ['Year of Study', student.yearOfStudy],
+//      ['Batch', student.batch],
+//      ['CGPA', student.cgpa || ''],
+//      ['Interned', student.hasInterned ? 'Yes' : 'No'],
+//      ['Placed', student.isPlaced ? 'Yes' : 'No']
     ];
 
     doc.fontSize(13).text('Student Details', { underline: true }).moveDown(0.5);

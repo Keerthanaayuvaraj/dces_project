@@ -30,7 +30,79 @@ const AdminLogin = () => {
       setError(err.response?.data?.error || 'Login failed');
     }
   };
+/*
+const sendOtp = async (e) => {
+  e.preventDefault();
+  setError('');
+  try {
+    await axios.post(`http://10.5.12.1:3000/api/admin/send-otp`, { email });
+    setStep('verify');
+    setMessage('OTP sent to your registered email');
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to send OTP');
+  }
+};
 
+const verifyOtp = async (e) => {
+  e.preventDefault();
+  setError('');
+  try {
+    await axios.post(`http://10.5.12.1:3000/api/admin/verify-otp`, { email, otp });
+    setStep('reset');
+    setMessage('OTP verified. Please set your new password');
+  } catch (err) {
+    setError(err.response?.data?.error || 'Invalid OTP');
+  }
+};
+
+const resetPassword = async (e) => {
+  e.preventDefault();
+  setError('');
+  try {
+    await axios.post(`http://10.5.12.1:3000/api/admin/reset-password`, { email, newPassword });
+    setStep('login');
+    setMessage('Password reset successful! Please log in.');
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to reset password');
+  }
+};
+*/
+
+const sendOtp = async () => {
+    setError('');
+    setMessage('');
+    try {
+      await axios.post(`http://10.5.12.1:3000/api/admin/forgot-password`, { email });
+      setStep('verify');
+      setMessage('OTP sent to your registered email');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to send OTP');
+    }
+  };
+
+  const verifyOtp = async () => {
+    setError('');
+    setMessage('');
+    try {
+      await axios.post(`http://10.5.12.1:3000/api/admin/verify-otp`, { email, otp });
+      setStep('reset');
+      setMessage('OTP verified. Please set your new password');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid or expired OTP');
+    }
+  };
+
+  const resetPassword = async () => {
+    setError('');
+    setMessage('');
+    try {
+      await axios.post(`http://10.5.12.1:3000/api/admin/reset-password`, { email, newPassword });
+      setStep('login');
+      setMessage('Password reset successful! Please log in.');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to reset password');
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative overflow-hidden">
 {/* Background Circles Limited to Main Section */}
